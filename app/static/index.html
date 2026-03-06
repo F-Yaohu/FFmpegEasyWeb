@@ -551,7 +551,7 @@ function authFetch(url,opts={}){
 }
 
 async function loadFormats(){try{S.formats=await(await fetch('/api/formats')).json();}catch{S.formats={video:['mp4','avi','mov','mkv','webm'],audio:['mp3','wav','aac','flac','ogg'],image:['png','jpg','webp']};}}
-async function loadMaxFileSize(){try{S.formats=await(await fetch('/api/maxFileSize'));}catch{S.maxFileSize=500;}}
+async function loadMaxFileSize(){try{S.maxFileSize=await(await fetch('/api/maxFileSize').size);}catch{S.maxFileSize=500;}}
 
 function switchTab(tab,el){document.querySelectorAll('.func-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));document.getElementById('panel-'+tab).classList.add('active');}
 function renderFormats(){const grid=document.getElementById('fg-convert');const fmts=S.formats[S.fmtType]||[];grid.innerHTML=fmts.map(f=>`<button class="fmt-btn${S.convertFormat===f?' selected':''}" onclick="selectFmt('${f}')">${f}</button>`).join('');}

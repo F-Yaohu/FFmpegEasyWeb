@@ -733,7 +733,7 @@ def list_formats():
 
 @app.route('/api/maxFileSize')
 def maxFileSize():
-    return MAX_FILE_SIZE
+    return jsonify({'size': MAX_FILE_SIZE})
 
 @app.route('/api/probe', methods=['POST'])
 @require_auth
