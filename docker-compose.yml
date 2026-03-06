@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  web:
+    image: zy1234567/ffmpeg-easy-web:latest
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./outputs:/app/outputs
+    environment:
+      # 访问密钥：设置后所有接口及上传均需携带此密钥（留空则不启用鉴权）
+      - ACCESS_KEY=
+      - MAX_FILE_SIZE=500
+      - ALLOWED_EXTENSIONS=mp4,avi,mov,mkv,flv,wmv,webm,mp3,wav,aac,flac,ogg,m4a,jpg,jpeg,png,gif,bmp,tiff
+      - SECRET_KEY=change-me-in-production
+    restart: unless-stopped
+    networks:
+      - ffmpeg-net
+
+networks:
+  ffmpeg-net:
+    driver: bridge
