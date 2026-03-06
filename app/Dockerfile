@@ -1,9 +1,12 @@
-FROM python:3.11-slim
+# 使用更小的 Alpine 基础镜像
+FROM python:3.11-alpine
 
-# Install FFmpeg
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+# 安装 FFmpeg 及必需的运行时库 (使用Alpine的apk包管理器)
+RUN apk update && \
+    apk add --no-cache --virtual .build-deps gcc musl-dev && \
+    apk add --no-cache ffmpeg && \
+    apk del .build-deps && \
+    rm -rf /var/cache/apk/*
 
 WORKDIR /app
 

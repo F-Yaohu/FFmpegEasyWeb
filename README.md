@@ -25,6 +25,7 @@
 ### 启动
 
 1. 使用仓库中提供的 `docker-compose.yml`（推荐）或自行创建 `docker-compose.yml` 文件：
+
     ```yaml
     version: '3.8'
     services:
