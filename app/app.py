@@ -11,9 +11,15 @@ from functools import wraps
 from flask import Flask, request, jsonify, send_file, g
 from werkzeug.utils import secure_filename
 
+from apscheduler.schedulers.background import BackgroundScheduler
+scheduler = BackgroundScheduler()
+
+import atexit
+
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
-app.config['MAX_CONTENT_LENGTH'] = int(os.environ.get('MAX_FILE_SIZE', 500)) * 1024 * 1024  # MB
+
+MAX_FILE_SIZE = int(os.environ.get('MAX_FILE_SIZE', 500)) * 1024 * 1024  # MB
 
 UPLOAD_DIR = Path('/app/uploads')
 OUTPUT_DIR = Path('/app/outputs')
@@ -730,6 +736,10 @@ def list_formats():
     }
     return jsonify(formats)
 
+@app.route('/api/maxFileSize')
+def maxFileSize():
+    return MAX_FILE_SIZE
+
 @app.route('/api/probe', methods=['POST'])
 @require_auth
 def probe():
@@ -762,5 +772,38 @@ def cleanup():
 def index():
     return send_file('static/index.html')
 
+# ──────────────────────────────────────────────
+# 定时器
+# ──────────────────────────────────────────────
+
+def scheduled_cleanup():
+    """独立清理函数，仅由定时任务触发"""
+    cleanup_old_files(UPLOAD_DIR)
+    cleanup_old_files(OUTPUT_DIR)
+    now = time.time()
+    with tasks_lock:
+        to_remove = [
+            tid for tid, t in tasks.items()
+            if t['status'] in ('done', 'error') and now - t['created_at'] > 3600
+        ]
+        for tid in to_remove:
+            tasks.pop(tid, None)
+
+# 初始化调度器，每天1点执行
+scheduler.add_job(
+    func=scheduled_cleanup,
+    trigger='cron',
+    hours=1,
+    id='cleanup_job',
+    replace_existing=True
+)
+
 if __name__ == '__main__':
+
+    # 启动调度器
+    scheduler.start()
+    
+    # 注册信号处理器确保优雅退出
+    atexit.register(lambda: scheduler.shutdown())
+
     app.run(host='0.0.0.0', port=5000, debug=False)
