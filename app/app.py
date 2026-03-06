@@ -8,13 +8,13 @@ import threading
 from fractions import Fraction
 from pathlib import Path
 from functools import wraps
-from flask import Flask, request, jsonify, send_file, g
+from flask import Flask, request, jsonify, send_file, send_from_directory, g
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key')
 
-MAX_FILE_SIZE = int(os.environ.get('MAX_FILE_SIZE', 500)) * 1024 * 1024  # MB
+MAX_FILE_SIZE = int(os.environ.get('MAX_FILE_SIZE', 500))  # MB
 
 UPLOAD_DIR = Path('/app/uploads')
 OUTPUT_DIR = Path('/app/outputs')
@@ -762,6 +762,10 @@ def cleanup():
         for tid in to_remove:
             tasks.pop(tid, None)
     return jsonify({'removed_tasks': len(to_remove)})
+
+@app.route('/img/<path:filename>')
+def serve_img(filename):
+    return send_from_directory('static/img', filename)
 
 @app.route('/')
 def index():
