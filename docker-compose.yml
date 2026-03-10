@@ -8,6 +8,7 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
+      - ./data:/app/data
     environment:
       # 访问密钥：设置后所有接口及上传均需携带此密钥（留空则不启用鉴权）
       - ACCESS_KEY=

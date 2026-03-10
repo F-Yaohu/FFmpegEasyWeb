@@ -3,11 +3,13 @@ import re
 import uuid
 import json
 import time
+import sqlite3
 import subprocess
 import threading
 from fractions import Fraction
 from pathlib import Path
 from functools import wraps
+from datetime import datetime
 from flask import Flask, request, jsonify, send_file, send_from_directory, g
 from werkzeug.utils import secure_filename
 
@@ -21,6 +23,10 @@ OUTPUT_DIR = Path('/app/outputs')
 UPLOAD_DIR.mkdir(exist_ok=True)
 OUTPUT_DIR.mkdir(exist_ok=True)
 
+# 数据库路径
+DB_PATH = Path('/app/data/tasks.db')
+DB_PATH.parent.mkdir(exist_ok=True)
+
 # ACCESS_KEY 鉴权：若环境变量未设置则不启用
 ACCESS_KEY = os.environ.get('ACCESS_KEY', '').strip()
 
@@ -30,9 +36,152 @@ ALLOWED_EXTENSIONS = set(
     ).split(',')
 )
 
-# 任务状态存储（生产环境建议用 Redis）
+# 任务状态存储（内存缓存，用于进度追踪）
 tasks = {}
 tasks_lock = threading.Lock()
+
+# ──────────────────────────────────────────────
+# 数据库初始化
+# ──────────────────────────────────────────────
+
+def init_db():
+    """初始化SQLite数据库"""
+    with sqlite3.connect(DB_PATH) as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS tasks (
+                task_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL DEFAULT 'pending',
+                progress INTEGER DEFAULT 0,
+                output_file TEXT,
+                original_name TEXT,
+                custom_name TEXT,
+                file_size INTEGER DEFAULT 0,
+                log TEXT,
+                created_at REAL NOT NULL,
+                updated_at REAL NOT NULL,
+                mode TEXT,
+                input_filename TEXT
+            )
+        ''')
+        conn.commit()
+
+def get_db():
+    """获取数据库连接"""
+    if 'db' not in g:
+        g.db = sqlite3.connect(DB_PATH)
+        g.db.row_factory = sqlite3.Row
+    return g.db
+
+@app.teardown_appcontext
+def close_db(exception):
+    """关闭数据库连接"""
+    db = g.pop('db', None)
+    if db is not None:
+        db.close()
+
+def save_task_to_db(task_id: str, task_data: dict):
+    """保存任务到数据库"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('''
+                INSERT OR REPLACE INTO tasks 
+                (task_id, status, progress, output_file, original_name, custom_name, 
+                 file_size, log, created_at, updated_at, mode, input_filename)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (
+                task_id,
+                task_data.get('status', 'pending'),
+                task_data.get('progress', 0),
+                task_data.get('output_file', ''),
+                task_data.get('original_name', ''),
+                task_data.get('custom_name', ''),
+                task_data.get('file_size', 0),
+                json.dumps(task_data.get('log', [])) if isinstance(task_data.get('log', []), list) else task_data.get('log', ''),
+                task_data.get('created_at', time.time()),
+                time.time(),
+                task_data.get('mode', ''),
+                task_data.get('input_filename', '')
+            ))
+            conn.commit()
+    except Exception as e:
+        app.logger.error(f"保存任务到数据库失败: {e}")
+
+def load_task_from_db(task_id: str) -> dict | None:
+    """从数据库加载任务"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                'SELECT * FROM tasks WHERE task_id = ?', (task_id,)
+            ).fetchone()
+            if row:
+                task = dict(row)
+                # 解析log字段
+                try:
+                    task['log'] = json.loads(task['log']) if task['log'] else []
+                except:
+                    task['log'] = [task['log']] if task['log'] else []
+                return task
+    except Exception as e:
+        app.logger.error(f"从数据库加载任务失败: {e}")
+    return None
+
+def delete_task_from_db(task_id: str) -> bool:
+    """从数据库删除任务"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('DELETE FROM tasks WHERE task_id = ?', (task_id,))
+            conn.commit()
+            return True
+    except Exception as e:
+        app.logger.error(f"从数据库删除任务失败: {e}")
+        return False
+
+def load_all_tasks_from_db(limit: int = 100) -> list:
+    """从数据库加载所有任务"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            rows = conn.execute(
+                'SELECT * FROM tasks ORDER BY created_at DESC LIMIT ?',
+                (limit,)
+            ).fetchall()
+            tasks_list = []
+            for row in rows:
+                task = dict(row)
+                try:
+                    task['log'] = json.loads(task['log']) if task['log'] else []
+                except:
+                    task['log'] = [task['log']] if task['log'] else []
+                tasks_list.append(task)
+            return tasks_list
+    except Exception as e:
+        app.logger.error(f"从数据库加载所有任务失败: {e}")
+    return []
+
+def update_task_status_in_db(task_id: str, status: str = None, progress: int = None):
+    """更新任务状态到数据库"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            updates = ['updated_at = ?']
+            params = [time.time()]
+            if status is not None:
+                updates.append('status = ?')
+                params.append(status)
+            if progress is not None:
+                updates.append('progress = ?')
+                params.append(progress)
+            params.append(task_id)
+            conn.execute(
+                f"UPDATE tasks SET {', '.join(updates)} WHERE task_id = ?",
+                params
+            )
+            conn.commit()
+    except Exception as e:
+        app.logger.error(f"更新任务状态失败: {e}")
+
+# 初始化数据库
+init_db()
 
 # ──────────────────────────────────────────────
 # 鉴权
@@ -420,6 +569,7 @@ def convert():
     filename = data.get('filename', '')
     output_format = data.get('output_format', '').strip().lower()
     extra_args = data.get('extra_args', [])
+    custom_name = data.get('custom_name', '').strip()
 
     if not re.match(r'^[a-zA-Z0-9_-]{1,36}$', file_id):
         return jsonify({'error': '无效的 file_id'}), 400
@@ -439,17 +589,36 @@ def convert():
     output_filename = f"{task_id}.{output_format}"
     output_path = OUTPUT_DIR / output_filename
     original_name = (Path(filename).stem or 'output') + '.' + output_format
+    
+    # 如果提供了自定义名称，验证并处理
+    final_custom_name = None
+    if custom_name:
+        # 移除危险字符，保留安全字符
+        safe_custom = re.sub(r'[\\/*?:"<>|]', '', custom_name)
+        if safe_custom:
+            # 确保有正确的扩展名
+            if not safe_custom.lower().endswith(f'.{output_format}'):
+                safe_custom += f'.{output_format}'
+            final_custom_name = safe_custom
+
+    task_data = {
+        'status': 'pending',
+        'progress': 0,
+        'output_file': output_filename,
+        'original_name': original_name,
+        'custom_name': final_custom_name,
+        'log': [],
+        'created_at': time.time(),
+        'duration': data.get('duration', 0),
+        'mode': mode,
+        'input_filename': filename,
+    }
 
     with tasks_lock:
-        tasks[task_id] = {
-            'status': 'pending',
-            'progress': 0,
-            'output_file': output_filename,
-            'original_name': original_name,
-            'log': [],
-            'created_at': time.time(),
-            'duration': data.get('duration', 0),
-        }
+        tasks[task_id] = task_data.copy()
+    
+    # 持久化到数据库
+    save_task_to_db(task_id, task_data)
 
     if mode == 'cut':
         cmd_builder = _build_cut_cmd
@@ -483,6 +652,11 @@ def convert():
                 with tasks_lock:
                     tasks[task_id]['output_file'] = output_filename
                     tasks[task_id]['original_name'] = original_name
+                # 更新自定义名称的扩展名
+                if final_custom_name:
+                    final_custom_name = re.sub(r'\.[^.]+$', '.m4a', final_custom_name)
+                    with tasks_lock:
+                        tasks[task_id]['custom_name'] = final_custom_name
         cmd_builder = _build_cover_cmd
         cmd_kwargs = {
             'cover_action': cover_action,
@@ -517,6 +691,7 @@ def merge():
     file_ids = data.get('file_ids', [])
     output_format = data.get('output_format', '').strip().lower()
     extra_args = data.get('extra_args', [])
+    custom_name = data.get('custom_name', '').strip()
 
     if not file_ids or len(file_ids) < 2:
         return jsonify({'error': '至少需要 2 个文件'}), 400
@@ -541,17 +716,33 @@ def merge():
     output_filename = f"{task_id}.{output_format}"
     output_path = OUTPUT_DIR / output_filename
     original_name = f"merged.{output_format}"
+    
+    # 处理自定义名称
+    final_custom_name = None
+    if custom_name:
+        safe_custom = re.sub(r'[\\/*?:"<>|]', '', custom_name)
+        if safe_custom:
+            if not safe_custom.lower().endswith(f'.{output_format}'):
+                safe_custom += f'.{output_format}'
+            final_custom_name = safe_custom
+
+    task_data = {
+        'status': 'pending',
+        'progress': 0,
+        'output_file': output_filename,
+        'original_name': original_name,
+        'custom_name': final_custom_name,
+        'log': [],
+        'created_at': time.time(),
+        'duration': 0,
+        'mode': 'merge',
+        'input_filename': f"{len(file_ids)} files",
+    }
 
     with tasks_lock:
-        tasks[task_id] = {
-            'status': 'pending',
-            'progress': 0,
-            'output_file': output_filename,
-            'original_name': original_name,
-            'log': [],
-            'created_at': time.time(),
-            'duration': 0,
-        }
+        tasks[task_id] = task_data.copy()
+    
+    save_task_to_db(task_id, task_data)
 
     t = threading.Thread(
         target=run_merge_task,
@@ -574,6 +765,9 @@ def run_merge_task(task_id: str, paths: list, output_path: Path,
                 task['progress'] = progress
             if log:
                 task['log'].append(log)
+        # 同步到数据库
+        if status or progress is not None:
+            update_task_status_in_db(task_id, status, progress)
 
     update(status='running', progress=0)
 
@@ -612,6 +806,14 @@ def run_merge_task(task_id: str, paths: list, output_path: Path,
 
         if proc.returncode == 0:
             update(status='done', progress=100)
+            # 获取文件大小
+            try:
+                file_size = output_path.stat().st_size
+                with sqlite3.connect(DB_PATH) as conn:
+                    conn.execute('UPDATE tasks SET file_size = ? WHERE task_id = ?', (file_size, task_id))
+                    conn.commit()
+            except:
+                pass
         else:
             update(status='error', log=stderr_output[:2000])
     except subprocess.TimeoutExpired:
@@ -633,6 +835,9 @@ def run_ffmpeg(task_id: str, input_path: Path, output_path: Path,
                 task['progress'] = progress
             if log:
                 task['log'].append(log)
+        # 同步到数据库
+        if status or progress is not None:
+            update_task_status_in_db(task_id, status, progress)
 
     update(status='running', progress=0)
 
@@ -677,6 +882,14 @@ def run_ffmpeg(task_id: str, input_path: Path, output_path: Path,
 
         if proc.returncode == 0:
             update(status='done', progress=100)
+            # 获取文件大小
+            try:
+                file_size = output_path.stat().st_size
+                with sqlite3.connect(DB_PATH) as conn:
+                    conn.execute('UPDATE tasks SET file_size = ? WHERE task_id = ?', (file_size, task_id))
+                    conn.commit()
+            except:
+                pass
         else:
             update(status='error', log=stderr_output[:2000])
     except subprocess.TimeoutExpired:
@@ -688,6 +901,174 @@ def run_ffmpeg(task_id: str, input_path: Path, output_path: Path,
 
 
 # ──────────────────────────────────────────────
+# 任务历史管理 API
+# ──────────────────────────────────────────────
+
+@app.route('/api/tasks', methods=['GET'])
+@require_auth
+def get_tasks():
+    """获取任务历史列表"""
+    limit = request.args.get('limit', 100, type=int)
+    status = request.args.get('status', '')
+    
+    tasks_list = load_all_tasks_from_db(limit)
+    
+    # 合并内存中的最新状态（正在运行的任务）
+    with tasks_lock:
+        for task in tasks_list:
+            if task['task_id'] in tasks:
+                mem_task = tasks[task['task_id']]
+                task['status'] = mem_task.get('status', task['status'])
+                task['progress'] = mem_task.get('progress', task['progress'])
+    
+    # 过滤状态
+    if status:
+        tasks_list = [t for t in tasks_list if t['status'] == status]
+    
+    return jsonify({'tasks': tasks_list, 'total': len(tasks_list)})
+
+
+@app.route('/api/task/<task_id>', methods=['DELETE'])
+@require_auth
+def delete_task(task_id: str):
+    """删除单个任务及其文件"""
+    if not re.match(r'^[a-zA-Z0-9_-]{1,36}$', task_id):
+        return jsonify({'error': '无效的 task_id'}), 400
+    
+    # 获取任务信息
+    task = load_task_from_db(task_id)
+    if not task:
+        with tasks_lock:
+            if task_id in tasks:
+                task = tasks[task_id].copy()
+    
+    if not task:
+        return jsonify({'error': '任务不存在'}), 404
+    
+    # 删除输出文件
+    output_file = task.get('output_file', '')
+    if output_file:
+        output_path = OUTPUT_DIR / output_file
+        try:
+            output_path.unlink(missing_ok=True)
+        except:
+            pass
+    
+    # 从数据库删除
+    delete_task_from_db(task_id)
+    
+    # 从内存删除
+    with tasks_lock:
+        tasks.pop(task_id, None)
+    
+    return jsonify({'success': True, 'message': '任务已删除'})
+
+
+@app.route('/api/tasks', methods=['DELETE'])
+@require_auth
+def delete_tasks_batch():
+    """批量删除任务及其文件"""
+    data = request.get_json() or {}
+    task_ids = data.get('task_ids', [])
+    
+    if not task_ids:
+        return jsonify({'error': '未提供任务ID列表'}), 400
+    
+    deleted_count = 0
+    failed_ids = []
+    
+    for task_id in task_ids:
+        if not re.match(r'^[a-zA-Z0-9_-]{1,36}$', task_id):
+            failed_ids.append(task_id)
+            continue
+        
+        # 获取任务信息
+        task = load_task_from_db(task_id)
+        if not task:
+            with tasks_lock:
+                if task_id in tasks:
+                    task = tasks[task_id].copy()
+        
+        if not task:
+            failed_ids.append(task_id)
+            continue
+        
+        # 删除输出文件
+        output_file = task.get('output_file', '')
+        if output_file:
+            output_path = OUTPUT_DIR / output_file
+            try:
+                output_path.unlink(missing_ok=True)
+            except:
+                pass
+        
+        # 从数据库删除
+        if delete_task_from_db(task_id):
+            deleted_count += 1
+        else:
+            failed_ids.append(task_id)
+        
+        # 从内存删除
+        with tasks_lock:
+            tasks.pop(task_id, None)
+    
+    return jsonify({
+        'success': True,
+        'deleted_count': deleted_count,
+        'failed_ids': failed_ids
+    })
+
+
+@app.route('/api/task/<task_id>/rename', methods=['POST'])
+@require_auth
+def rename_task(task_id: str):
+    """重命名任务的输出文件"""
+    if not re.match(r'^[a-zA-Z0-9_-]{1,36}$', task_id):
+        return jsonify({'error': '无效的 task_id'}), 400
+    
+    data = request.get_json() or {}
+    custom_name = data.get('custom_name', '').strip()
+    
+    if not custom_name:
+        return jsonify({'error': '未提供新文件名'}), 400
+    
+    # 获取任务信息
+    task = load_task_from_db(task_id)
+    if not task:
+        return jsonify({'error': '任务不存在'}), 404
+    
+    # 清理文件名
+    safe_name = re.sub(r'[\\/*?:"<>|]', '', custom_name)
+    if not safe_name:
+        return jsonify({'error': '无效的文件名'}), 400
+    
+    # 确保有正确的扩展名
+    output_file = task.get('output_file', '')
+    if output_file:
+        ext = Path(output_file).suffix
+        if not safe_name.lower().endswith(ext.lower()):
+            safe_name += ext
+    
+    # 更新数据库
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute(
+                'UPDATE tasks SET custom_name = ?, updated_at = ? WHERE task_id = ?',
+                (safe_name, time.time(), task_id)
+            )
+            conn.commit()
+    except Exception as e:
+        return jsonify({'error': f'重命名失败: {e}'}), 500
+    
+    # 更新内存
+    with tasks_lock:
+        if task_id in tasks:
+            tasks[task_id]['custom_name'] = safe_name
+    
+    return jsonify({'success': True, 'custom_name': safe_name})
+
+
+# ──────────────────────────────────────────────
 # 其他路由
 # ──────────────────────────────────────────────
 
@@ -696,19 +1077,36 @@ def run_ffmpeg(task_id: str, input_path: Path, output_path: Path,
 def task_status(task_id: str):
     if not re.match(r'^[a-zA-Z0-9_-]{1,36}$', task_id):
         return jsonify({'error': '无效的 task_id'}), 400
+    
+    # 优先从内存获取最新状态
     with tasks_lock:
-        task = tasks.get(task_id)
-    if not task:
-        return jsonify({'error': '任务不存在'}), 404
-    return jsonify(task)
+        mem_task = tasks.get(task_id)
+    
+    if mem_task:
+        return jsonify(mem_task)
+    
+    # 从数据库获取
+    db_task = load_task_from_db(task_id)
+    if db_task:
+        return jsonify(db_task)
+    
+    return jsonify({'error': '任务不存在'}), 404
+
 
 @app.route('/api/download/<task_id>')
 @require_auth
 def download(task_id: str):
     if not re.match(r'^[a-zA-Z0-9_-]{1,36}$', task_id):
         return jsonify({'error': '无效的 task_id'}), 400
+    
+    # 优先从内存获取
     with tasks_lock:
         task = tasks.get(task_id)
+    
+    # 从数据库获取
+    if not task:
+        task = load_task_from_db(task_id)
+    
     if not task or task['status'] != 'done':
         return jsonify({'error': '文件未就绪'}), 404
 
@@ -716,11 +1114,26 @@ def download(task_id: str):
     if not output_path.exists():
         return jsonify({'error': '文件不存在'}), 404
 
+    # 使用自定义名称或原始名称
+    download_name = task.get('custom_name') or task['original_name']
+    
+    # 检查是否有查询参数指定的文件名
+    custom_download_name = request.args.get('filename', '').strip()
+    if custom_download_name:
+        # 清理并确保扩展名正确
+        safe_name = re.sub(r'[\\/*?:"<>|]', '', custom_download_name)
+        if safe_name:
+            ext = Path(task['output_file']).suffix
+            if not safe_name.lower().endswith(ext.lower()):
+                safe_name += ext
+            download_name = safe_name
+
     return send_file(
         str(output_path),
         as_attachment=True,
-        download_name=task['original_name']
+        download_name=download_name
     )
+
 
 @app.route('/api/formats')
 def list_formats():
@@ -731,9 +1144,11 @@ def list_formats():
     }
     return jsonify(formats)
 
+
 @app.route('/api/maxFileSize')
 def maxFileSize():
     return jsonify({'size': MAX_FILE_SIZE})
+
 
 @app.route('/api/probe', methods=['POST'])
 @require_auth
@@ -747,6 +1162,7 @@ def probe():
         return jsonify({'error': '找不到文件'}), 404
     info = get_file_info(str(matches[0]))
     return jsonify(info)
+
 
 @app.route('/api/cleanup', methods=['POST'])
 @require_auth
@@ -763,13 +1179,16 @@ def cleanup():
             tasks.pop(tid, None)
     return jsonify({'removed_tasks': len(to_remove)})
 
+
 @app.route('/img/<path:filename>')
 def serve_img(filename):
     return send_from_directory('static/img', filename)
 
+
 @app.route('/')
 def index():
     return send_file('static/index.html')
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)

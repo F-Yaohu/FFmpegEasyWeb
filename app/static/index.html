@@ -127,6 +127,10 @@
   .btn-success{background:linear-gradient(135deg,#15803d,#22c55e);color:#fff;box-shadow:0 3px 12px rgba(34,197,94,.3)}
   .btn-success:hover{transform:translateY(-1px)}
   .btn-sm{padding:7px 14px;font-size:12.5px}
+  .btn-danger{background:var(--error);color:#fff}
+  .btn-danger:hover{background:#b91c1c}
+  .btn-secondary{background:var(--surface2);color:var(--text2);border:1.5px solid var(--border)}
+  .btn-secondary:hover{background:var(--border)}
 
   .progress-section{display:none}
   .progress-section.show{display:block}
@@ -163,15 +167,38 @@
   .merge-add-btn input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
   .merge-add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light)}
 
+  /* 自定义文件名输入 */
+  .custom-name-section{margin-bottom:14px;padding:12px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-sm)}
+  .custom-name-label{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;display:block}
+  .custom-name-input{width:100%;padding:9px 12px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:#fff;color:var(--text);font-size:13.5px;outline:none;transition:border-color .18s}
+  .custom-name-input:focus{border-color:var(--accent)}
+  .custom-name-hint{font-size:11px;color:var(--text3);margin-top:5px}
+
+  /* 历史记录样式 */
+  .history-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+  .history-title{display:flex;align-items:center;gap:8px}
+  .history-actions{display:flex;gap:8px;align-items:center}
   .history-list{display:flex;flex-direction:column;gap:7px}
-  .history-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;display:flex;align-items:center;gap:12px}
-  .history-icon{font-size:18px;width:28px;text-align:center}
+  .history-item{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 14px;display:flex;align-items:center;gap:12px;transition:background .18s}
+  .history-item:hover{background:#fff}
+  .history-checkbox{width:18px;height:18px;cursor:pointer;accent-color:var(--accent);flex-shrink:0}
+  .history-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
   .history-meta{flex:1;min-width:0}
   .history-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .history-sub{font-size:11px;color:var(--text3);margin-top:2px}
-  .history-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px}
+  .history-status{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0}
   .history-status.done{background:var(--success-light);color:var(--success)}
   .history-status.error{background:var(--error-light);color:var(--error)}
+  .history-status.running{background:var(--accent-light);color:var(--accent)}
+  .history-status.pending{background:var(--surface2);color:var(--text3)}
+  .history-actions-group{display:flex;gap:6px;align-items:center;flex-shrink:0}
+  .history-btn{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:none;transition:all .18s}
+  .history-btn-download{background:var(--success);color:#fff}
+  .history-btn-download:hover{background:#15803d}
+  .history-btn-delete{background:var(--error-light);color:var(--error)}
+  .history-btn-delete:hover{background:var(--error);color:#fff}
+  .history-select-all{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:12px;color:var(--text2);user-select:none}
+  .history-select-all input{cursor:pointer;accent-color:var(--accent)}
   .empty-state{text-align:center;padding:28px;color:var(--text3);font-size:14px}
   .empty-state .empty-icon{font-size:34px;display:block;margin-bottom:8px}
 
@@ -190,7 +217,17 @@
   .tab-panel.active{display:block}
   .info-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;background:var(--accent-light);color:var(--accent-hover);margin-bottom:16px}
 
-  @media(max-width:640px){main{padding:16px 12px 40px}.card{padding:16px}header{padding:0 16px}.func-tab{min-width:75px;font-size:12px}.form-row{grid-template-columns:1fr 1fr}}
+  /* 确认对话框 */
+  .confirm-dialog{position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(6px);z-index:600;display:none;align-items:center;justify-content:center}
+  .confirm-dialog.show{display:flex}
+  .confirm-box{background:var(--surface);border-radius:var(--radius);padding:28px;width:360px;box-shadow:0 8px 40px rgba(0,0,0,.18);text-align:center}
+  .confirm-icon{font-size:48px;margin-bottom:12px}
+  .confirm-title{font-size:16px;font-weight:700;margin-bottom:8px}
+  .confirm-msg{font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.5}
+  .confirm-btns{display:flex;gap:10px;justify-content:center}
+  .confirm-btns .btn{flex:1}
+
+  @media(max-width:640px){main{padding:16px 12px 40px}.card{padding:16px}header{padding:0 16px}.func-tab{min-width:75px;font-size:12px}.form-row{grid-template-columns:1fr 1fr}.history-actions{flex-wrap:wrap;width:100%}.history-actions-group{flex-wrap:wrap}}
 </style>
 </head>
 <body>
@@ -203,6 +240,19 @@
     <input class="auth-input" id="auth-input" type="password" placeholder="请输入 Access Key" autocomplete="current-password">
     <div class="auth-err" id="auth-err"></div>
     <button class="auth-btn" onclick="submitAuth()">验证并进入</button>
+  </div>
+</div>
+
+<!-- 确认对话框 -->
+<div id="confirm-dialog" class="confirm-dialog">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="confirm-icon">⚠️</div>
+    <div class="confirm-title" id="confirm-title">确认</div>
+    <div class="confirm-msg" id="confirm-msg">确定要执行此操作吗？</div>
+    <div class="confirm-btns">
+      <button class="btn btn-secondary" onclick="closeConfirmDialog()">取消</button>
+      <button class="btn btn-primary" id="confirm-btn" onclick="">确定</button>
+    </div>
   </div>
 </div>
 
@@ -255,7 +305,15 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="step-badge">3</span>命令预览 &amp; 开始转换</div>
+      <div class="card-title"><span class="step-badge">3</span>输出设置（可选）</div>
+      <div class="custom-name-section">
+        <label class="custom-name-label">📛 自定义输出文件名（不含扩展名）</label>
+        <input type="text" class="custom-name-input" id="cn-convert" placeholder="留空则使用默认名称">
+        <div class="custom-name-hint">最终文件名会自动添加对应扩展名，如：myvideo → myvideo.mp4</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="step-badge">4</span>命令预览 &amp; 开始转换</div>
       <div class="cmd-preview-wrap" id="cpw-convert" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-convert"></span></div>
         <div class="cmd-box"><textarea id="cmd-convert" rows="2" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('convert')">⎘</button></div>
@@ -306,7 +364,15 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="step-badge">3</span>命令预览 &amp; 开始剪切</div>
+      <div class="card-title"><span class="step-badge">3</span>输出设置（可选）</div>
+      <div class="custom-name-section">
+        <label class="custom-name-label">📛 自定义输出文件名（不含扩展名）</label>
+        <input type="text" class="custom-name-input" id="cn-cut" placeholder="留空则使用默认名称">
+        <div class="custom-name-hint">最终文件名会自动添加对应扩展名</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="step-badge">4</span>命令预览 &amp; 开始剪切</div>
       <div class="cmd-preview-wrap" id="cpw-cut" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-cut"></span></div>
         <div class="cmd-box"><textarea id="cmd-cut" rows="2" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('cut')">⎘</button></div>
@@ -341,6 +407,11 @@
           </select>
         </div>
         <div class="form-group"><label class="form-label" style="opacity:0">-</label><p style="font-size:12px;color:var(--text3);padding-top:6px">合并要求所有文件编码/分辨率相同，否则建议先统一格式。</p></div>
+      </div>
+      <div class="custom-name-section" style="margin-top:14px">
+        <label class="custom-name-label">📛 自定义输出文件名（不含扩展名）</label>
+        <input type="text" class="custom-name-input" id="cn-merge" placeholder="留空则使用默认名称 (merged)">
+        <div class="custom-name-hint">最终文件名会自动添加对应扩展名</div>
       </div>
     </div>
     <div class="card">
@@ -406,7 +477,15 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="step-badge">4</span>命令预览 &amp; 开始混流</div>
+      <div class="card-title"><span class="step-badge">4</span>输出设置（可选）</div>
+      <div class="custom-name-section">
+        <label class="custom-name-label">📛 自定义输出文件名（不含扩展名）</label>
+        <input type="text" class="custom-name-input" id="cn-mux" placeholder="留空则使用默认名称">
+        <div class="custom-name-hint">最终文件名会自动添加对应扩展名</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="step-badge">5</span>命令预览 &amp; 开始混流</div>
       <div class="cmd-preview-wrap" id="cpw-mux" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-mux"></span></div>
         <div class="cmd-box"><textarea id="cmd-mux" rows="2" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('mux')">⎘</button></div>
@@ -486,7 +565,15 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-title"><span class="step-badge" id="cover-exec-step">4</span>命令预览 &amp; 执行</div>
+      <div class="card-title"><span class="step-badge" id="cover-exec-step">4</span>输出设置（可选）</div>
+      <div class="custom-name-section">
+        <label class="custom-name-label">📛 自定义输出文件名（不含扩展名）</label>
+        <input type="text" class="custom-name-input" id="cn-cover" placeholder="留空则使用默认名称">
+        <div class="custom-name-hint">最终文件名会自动添加对应扩展名</div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span class="step-badge" id="cover-exec-step2">5</span>命令预览 &amp; 执行</div>
       <div class="cmd-preview-wrap" id="cpw-cover" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-cover"></span></div>
         <div class="cmd-box"><textarea id="cmd-cover" rows="2" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('cover')">⎘</button></div>
@@ -504,9 +591,20 @@
 
   <!-- 历史记录 -->
   <div class="card" style="margin-top:8px">
-    <div class="card-title" style="justify-content:space-between;display:flex;margin-bottom:14px">
-      <span style="display:flex;align-items:center;gap:8px"><span class="step-badge" style="background:rgba(148,163,184,.12);color:var(--text3)">⏱</span>任务历史</span>
-      <button class="btn btn-ghost" onclick="clearHistory()" style="font-size:12px;padding:4px 10px">清空</button>
+    <div class="history-header">
+      <div class="history-title">
+        <span class="step-badge" style="background:rgba(148,163,184,.12);color:var(--text3)">⏱</span>
+        <span>任务历史</span>
+      </div>
+      <div class="history-actions">
+        <button class="btn btn-ghost" onclick="refreshHistory()" style="font-size:12px;padding:4px 10px">🔄 刷新</button>
+        <label class="history-select-all">
+          <input type="checkbox" id="select-all-history" onchange="toggleSelectAllHistory()">
+          <span>全选</span>
+        </label>
+        <button class="btn btn-danger btn-sm" onclick="deleteSelectedHistory()" id="btn-delete-selected" disabled>🗑️ 清理所选</button>
+        <button class="btn btn-ghost" onclick="clearAllHistory()" style="font-size:12px;padding:4px 10px;color:var(--error)">清空全部</button>
+      </div>
     </div>
     <div class="history-list" id="historyList"><div class="empty-state"><span class="empty-icon">📋</span>暂无任务记录</div></div>
   </div>
@@ -514,16 +612,48 @@
 <div id="toast"></div>
 
 <script>
-const S={files:{'convert':{fileId:null,filename:null,info:{}},'cut':{fileId:null,filename:null,info:{}},'mux-video':{fileId:null,filename:null,info:{}},'mux-audio':{fileId:null,filename:null,info:{}},'cover-main':{fileId:null,filename:null,info:{}},'cover-img':{fileId:null,filename:null,info:{}}},convertFormat:null,fmtType:'video',formats:{},maxFileSize:500,cutCopy:true,mergeFiles:[],coverAction:'set',keepCover:false,polling:{},history:[],accessKey:'',authEnabled:false,dpTimers:{}};
+const S={files:{'convert':{fileId:null,filename:null,info:{}},'cut':{fileId:null,filename:null,info:{}},'mux-video':{fileId:null,filename:null,info:{}},'mux-audio':{fileId:null,filename:null,info:{}},'cover-main':{fileId:null,filename:null,info:{}},'cover-img':{fileId:null,filename:null,info:{}}},convertFormat:null,fmtType:'video',formats:{},maxFileSize:500,cutCopy:true,mergeFiles:[],coverAction:'set',keepCover:false,polling:{},history:[],accessKey:'',authEnabled:false,dpTimers:{},selectedHistory:new Set(),runningTasks:new Set()};
 const PRESETS={video:[{label:'压缩 CRF28',args:'-crf 28 -preset fast'},{label:'高质量 CRF18',args:'-crf 18 -preset slow'},{label:'缩放 1080p',args:'-vf scale=1920:1080'},{label:'缩放 720p',args:'-vf scale=1280:720'},{label:'缩放 480p',args:'-vf scale=854:480'},{label:'去掉音频',args:'-an'},{label:'提取音频',args:'-vn'},{label:'2倍速',args:'-filter_complex "[0:v]setpts=0.5*PTS[v];[0:a]atempo=2.0[a]" -map [v] -map [a]'}],audio:[{label:'320k',args:'-b:a 320k'},{label:'192k',args:'-b:a 192k'},{label:'128k',args:'-b:a 128k'},{label:'44100 Hz',args:'-ar 44100'},{label:'单声道',args:'-ac 1'},{label:'立体声',args:'-ac 2'}],image:[{label:'高质量',args:'-q:v 2'},{label:'缩放 50%',args:'-vf scale=iw/2:ih/2'},{label:'水平翻转',args:'-vf hflip'},{label:'垂直翻转',args:'-vf vflip'},{label:'旋转 90°',args:'-vf transpose=1'}]};
 
+// ── 页面加载 ──
 document.addEventListener('DOMContentLoaded',async()=>{
   await checkHealth();await loadFormats();await loadMaxFileSize();renderFormats();renderPresets();
   ['convert','cut','mux-video','mux-audio','cover-main','cover-img'].forEach(ns=>setupDrop(ns));
   setInterval(checkHealth,30000);
   document.getElementById('auth-input').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+  // 加载历史记录
+  await loadHistory();
+  // 设置退出提示
+  setupBeforeUnload();
 });
 
+// ── 退出提示 ──
+function setupBeforeUnload(){
+  window.addEventListener('beforeunload',(e)=>{
+    // 检查是否有正在运行的任务
+    const runningCount=S.runningTasks.size;
+    if(runningCount>0){
+      const msg=`有 ${runningCount} 个任务正在处理中，离开页面将中断任务。确定要离开吗？`;
+      e.preventDefault();
+      e.returnValue=msg;
+      return msg;
+    }
+  });
+}
+
+// ── 确认对话框 ──
+function showConfirmDialog(title,msg,icon,onConfirm){
+  document.getElementById('confirm-title').textContent=title;
+  document.getElementById('confirm-msg').textContent=msg;
+  document.getElementById('confirm-icon').textContent=icon||'⚠️';
+  document.getElementById('confirm-btn').onclick=()=>{closeConfirmDialog();onConfirm();};
+  document.getElementById('confirm-dialog').classList.add('show');
+}
+function closeConfirmDialog(){
+  document.getElementById('confirm-dialog').classList.remove('show');
+}
+
+// ── 鉴权 ──
 async function checkHealth(){
   try{
     const d=await(await fetch('/api/health')).json();
@@ -541,6 +671,8 @@ async function submitAuth(){
     const r2=await fetch('/api/probe',{method:'POST',headers:{'Content-Type':'application/json','X-Access-Key':key},body:JSON.stringify({file_id:'test'})});
     if(r2.status===401){document.getElementById('auth-err').textContent='密钥错误，请重新输入';document.getElementById('auth-input').select();return;}
     S.accessKey=key;document.getElementById('auth-overlay').classList.add('hidden');document.getElementById('auth-tag').style.display='';showToast('验证成功，欢迎使用','success');
+    // 验证成功后加载历史记录
+    await loadHistory();
   }catch{document.getElementById('auth-err').textContent='网络错误，请重试';}
 }
 function lockApp(){S.accessKey='';document.getElementById('auth-input').value='';document.getElementById('auth-err').textContent='';document.getElementById('auth-overlay').classList.remove('hidden');document.getElementById('auth-tag').style.display='none';}
@@ -594,12 +726,20 @@ async function fetchPreview(ns){
 }
 function copyCmd(ns){const ta=document.getElementById('cmd-'+ns);if(!ta)return;navigator.clipboard.writeText(ta.value).then(()=>showToast('命令已复制','success')).catch(()=>{ta.select();document.execCommand('copy');showToast('命令已复制','success');});}
 
+// ── 获取自定义文件名 ──
+function getCustomName(ns,defaultName){
+  const input=document.getElementById('cn-'+ns);
+  if(!input)return defaultName;
+  const val=input.value.trim();
+  return val||defaultName;
+}
+
 // ── 格式转换 ──
-async function startConvert(){const f=S.files['convert'];if(!f.fileId||!S.convertFormat)return;const args=(document.getElementById('ea-convert').value.trim()||'').split(/\s+/).filter(Boolean);resetProg('convert');showProg('convert',true);document.getElementById('btn-convert').disabled=true;try{const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'convert',file_id:f.fileId,filename:f.filename,output_format:S.convertFormat,extra_args:args,duration:f.info?.duration||0})});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-convert').disabled=false;showProg('convert',false);return;}pollTask(d.task_id,'convert');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-convert').disabled=false;showProg('convert',false);}}
+async function startConvert(){const f=S.files['convert'];if(!f.fileId||!S.convertFormat)return;const args=(document.getElementById('ea-convert').value.trim()||'').split(/\s+/).filter(Boolean);const customName=getCustomName('convert',null);resetProg('convert');showProg('convert',true);document.getElementById('btn-convert').disabled=true;try{const body={mode:'convert',file_id:f.fileId,filename:f.filename,output_format:S.convertFormat,extra_args:args,duration:f.info?.duration||0};if(customName)body.custom_name=customName;const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-convert').disabled=false;showProg('convert',false);return;}S.runningTasks.add(d.task_id);pollTask(d.task_id,'convert');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-convert').disabled=false;showProg('convert',false);}}
 
 // ── 剪切 ──
 function toggleCutCopy(){S.cutCopy=!S.cutCopy;document.getElementById('cut-copy-toggle').classList.toggle('on',S.cutCopy);dp('cut');}
-async function startCut(){const f=S.files['cut'];if(!f.fileId)return;const ss=document.getElementById('cut-ss').value.trim();const to=document.getElementById('cut-to').value.trim();const t=document.getElementById('cut-t').value.trim();let fmt=document.getElementById('cut-fmt').value||((f.filename||'').split('.').pop().toLowerCase())||'mp4';resetProg('cut');showProg('cut',true);document.getElementById('btn-cut').disabled=true;try{const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'cut',file_id:f.fileId,filename:f.filename,output_format:fmt,ss,to,t,copy:S.cutCopy,duration:f.info?.duration||0,extra_args:[]})});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-cut').disabled=false;showProg('cut',false);return;}pollTask(d.task_id,'cut');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-cut').disabled=false;showProg('cut',false);}}
+async function startCut(){const f=S.files['cut'];if(!f.fileId)return;const ss=document.getElementById('cut-ss').value.trim();const to=document.getElementById('cut-to').value.trim();const t=document.getElementById('cut-t').value.trim();let fmt=document.getElementById('cut-fmt').value||((f.filename||'').split('.').pop().toLowerCase())||'mp4';const customName=getCustomName('cut',null);resetProg('cut');showProg('cut',true);document.getElementById('btn-cut').disabled=true;try{const body={mode:'cut',file_id:f.fileId,filename:f.filename,output_format:fmt,ss,to,t,copy:S.cutCopy,duration:f.info?.duration||0,extra_args:[]};if(customName)body.custom_name=customName;const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-cut').disabled=false;showProg('cut',false);return;}S.runningTasks.add(d.task_id);pollTask(d.task_id,'cut');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-cut').disabled=false;showProg('cut',false);}}
 
 // ── 合并 ──
 async function onMergeFileSelect(evt){const files=Array.from(evt.target.files);document.getElementById('uo-merge').classList.add('show');for(const file of files){if(S.mergeFiles.length>=10){showToast('最多添加 10 个文件','error');break;}const fd=new FormData();fd.append('file',file);if(S.accessKey)fd.append('access_key',S.accessKey);try{const r=await fetch('/api/upload',{method:'POST',headers:S.accessKey?{'X-Access-Key':S.accessKey}:{},body:fd});const d=await r.json();if(r.ok)S.mergeFiles.push({fileId:d.file_id,filename:d.filename,size:d.size});else showToast(d.error||'上传失败','error');}catch(e){showToast('上传失败：'+e.message,'error');}}document.getElementById('uo-merge').classList.remove('show');evt.target.value='';renderMergeList();updateBtn('merge',S.mergeFiles.length>=2);if(S.mergeFiles.length>=2)dp('merge');}
@@ -608,27 +748,164 @@ let _ds=-1;
 function mds(i){_ds=i;}function mdo(e,i){e.preventDefault();document.querySelectorAll('.merge-item')[i]?.classList.add('drag-target');}function mdl(i){document.querySelectorAll('.merge-item')[i]?.classList.remove('drag-target');}
 function mdp(e,i){e.preventDefault();document.querySelectorAll('.merge-item')[i]?.classList.remove('drag-target');if(_ds===i)return;const tmp=S.mergeFiles[_ds];S.mergeFiles.splice(_ds,1);S.mergeFiles.splice(i,0,tmp);renderMergeList();updateBtn('merge',S.mergeFiles.length>=2);dp('merge');}
 function rmMerge(i){S.mergeFiles.splice(i,1);renderMergeList();updateBtn('merge',S.mergeFiles.length>=2);dp('merge');}
-async function startMerge(){if(S.mergeFiles.length<2)return;const fmt=document.getElementById('merge-fmt').value;resetProg('merge');showProg('merge',true);document.getElementById('btn-merge').disabled=true;try{const r=await authFetch('/api/merge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({file_ids:S.mergeFiles.map(f=>f.fileId),output_format:fmt,extra_args:[]})});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-merge').disabled=false;showProg('merge',false);return;}pollTask(d.task_id,'merge');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-merge').disabled=false;showProg('merge',false);}}
+async function startMerge(){if(S.mergeFiles.length<2)return;const fmt=document.getElementById('merge-fmt').value;const customName=getCustomName('merge',null);resetProg('merge');showProg('merge',true);document.getElementById('btn-merge').disabled=true;try{const body={file_ids:S.mergeFiles.map(f=>f.fileId),output_format:fmt,extra_args:[]};if(customName)body.custom_name=customName;const r=await authFetch('/api/merge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-merge').disabled=false;showProg('merge',false);return;}S.runningTasks.add(d.task_id);pollTask(d.task_id,'merge');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-merge').disabled=false;showProg('merge',false);}}
 
 // ── 混流 ──
 function updateMuxUI(){const mix=document.getElementById('mux-mode').value==='mix';document.getElementById('mux-vol-v-g').style.display=mix?'':'none';document.getElementById('mux-vol-a-g').style.display=mix?'':'none';}
-async function startMux(){const fv=S.files['mux-video'],fa=S.files['mux-audio'];if(!fv.fileId)return;const mode=document.getElementById('mux-mode').value,fmt=document.getElementById('mux-fmt').value;const vv=parseFloat(document.getElementById('mux-vol-v').value)||1,av=parseFloat(document.getElementById('mux-vol-a').value)||1;resetProg('mux');showProg('mux',true);document.getElementById('btn-mux').disabled=true;try{const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'mux',file_id:fv.fileId,filename:fv.filename,output_format:fmt,audio_file_id:fa.fileId||'',mux_mode:mode,video_vol:vv,audio_vol:av,duration:fv.info?.duration||0,extra_args:[]})});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-mux').disabled=false;showProg('mux',false);return;}pollTask(d.task_id,'mux');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-mux').disabled=false;showProg('mux',false);}}
+async function startMux(){const fv=S.files['mux-video'],fa=S.files['mux-audio'];if(!fv.fileId)return;const mode=document.getElementById('mux-mode').value,fmt=document.getElementById('mux-fmt').value;const vv=parseFloat(document.getElementById('mux-vol-v').value)||1,av=parseFloat(document.getElementById('mux-vol-a').value)||1;const customName=getCustomName('mux',null);resetProg('mux');showProg('mux',true);document.getElementById('btn-mux').disabled=true;try{const body={mode:'mux',file_id:fv.fileId,filename:fv.filename,output_format:fmt,audio_file_id:fa.fileId||'',mux_mode:mode,video_vol:vv,audio_vol:av,duration:fv.info?.duration||0,extra_args:[]};if(customName)body.custom_name=customName;const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-mux').disabled=false;showProg('mux',false);return;}S.runningTasks.add(d.task_id);pollTask(d.task_id,'mux');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-mux').disabled=false;showProg('mux',false);}}
 
 // ── 封面管理 ──
-function switchCoverAction(action,el){S.coverAction=action;document.querySelectorAll('#cover-action-tabs .format-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['set','extract','extract_audio'].forEach(a=>{const e=document.getElementById('cover-desc-'+a);if(e)e.style.display=a===action?'':'none';});const hints={set:{icon:'🎵',title:'点击或拖拽音频文件',hint:'支持 MP3, AAC, M4A 等音频格式'},extract:{icon:'🎬',title:'点击或拖拽视频或音频文件',hint:'从中提取封面图片'},extract_audio:{icon:'🎬',title:'点击或拖拽视频文件',hint:'将从视频中提取音频流'}};const h=hints[action];document.getElementById('cv-main-icon').textContent=h.icon;document.getElementById('cv-main-title').textContent=h.title;document.getElementById('cv-main-hint').textContent=h.hint;document.getElementById('cover-img-card').style.display=action==='set'?'':'none';document.getElementById('cover-audio-opts').style.display=action==='extract_audio'?'':'none';document.getElementById('cover-extract-opts').style.display=action==='extract'?'':'none';document.getElementById('cover-exec-step').textContent=action==='set'?'4':'3';updateCoverBtn();dp('cover');}
+function switchCoverAction(action,el){S.coverAction=action;document.querySelectorAll('#cover-action-tabs .format-tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');['set','extract','extract_audio'].forEach(a=>{const e=document.getElementById('cover-desc-'+a);if(e)e.style.display=a===action?'':'none';});const hints={set:{icon:'🎵',title:'点击或拖拽音频文件',hint:'支持 MP3, AAC, M4A 等音频格式'},extract:{icon:'🎬',title:'点击或拖拽视频或音频文件',hint:'从中提取封面图片'},extract_audio:{icon:'🎬',title:'点击或拖拽视频文件',hint:'将从视频中提取音频流'}};const h=hints[action];document.getElementById('cv-main-icon').textContent=h.icon;document.getElementById('cv-main-title').textContent=h.title;document.getElementById('cv-main-hint').textContent=h.hint;document.getElementById('cover-img-card').style.display=action==='set'?'':'none';document.getElementById('cover-audio-opts').style.display=action==='extract_audio'?'':'none';document.getElementById('cover-extract-opts').style.display=action==='extract'?'':'none';document.getElementById('cover-exec-step').textContent=action==='set'?'4':'3';document.getElementById('cover-exec-step2').textContent=action==='set'?'5':'4';updateCoverBtn();dp('cover');}
 function toggleKeepCover(){S.keepCover=!S.keepCover;document.getElementById('cover-keep-toggle').classList.toggle('on',S.keepCover);dp('cover');}
-async function startCover(){const fm=S.files['cover-main'],fi=S.files['cover-img'];if(!fm.fileId)return;let fmt;if(S.coverAction==='extract')fmt=document.getElementById('cover-img-fmt').value;else if(S.coverAction==='extract_audio')fmt=document.getElementById('cover-audio-fmt').value;else fmt=(fm.filename||'').split('.').pop().toLowerCase()||'mp3';resetProg('cover');showProg('cover',true);document.getElementById('btn-cover').disabled=true;try{const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'cover',file_id:fm.fileId,filename:fm.filename,output_format:fmt,cover_action:S.coverAction,cover_file_id:fi.fileId||'',keep_cover:S.keepCover,duration:fm.info?.duration||0,extra_args:[]})});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-cover').disabled=false;showProg('cover',false);return;}pollTask(d.task_id,'cover');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-cover').disabled=false;showProg('cover',false);}}
+async function startCover(){const fm=S.files['cover-main'],fi=S.files['cover-img'];if(!fm.fileId)return;let fmt;if(S.coverAction==='extract')fmt=document.getElementById('cover-img-fmt').value;else if(S.coverAction==='extract_audio')fmt=document.getElementById('cover-audio-fmt').value;else fmt=(fm.filename||'').split('.').pop().toLowerCase()||'mp3';const customName=getCustomName('cover',null);resetProg('cover');showProg('cover',true);document.getElementById('btn-cover').disabled=true;try{const body={mode:'cover',file_id:fm.fileId,filename:fm.filename,output_format:fmt,cover_action:S.coverAction,cover_file_id:fi.fileId||'',keep_cover:S.keepCover,duration:fm.info?.duration||0,extra_args:[]};if(customName)body.custom_name=customName;const r=await authFetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok){showToast(d.error||'请求失败','error');document.getElementById('btn-cover').disabled=false;showProg('cover',false);return;}S.runningTasks.add(d.task_id);pollTask(d.task_id,'cover');}catch(e){showToast('请求失败：'+e.message,'error');document.getElementById('btn-cover').disabled=false;showProg('cover',false);}}
 
 // ── 进度轮询 ──
-function pollTask(taskId,ns){if(S.polling[ns])clearInterval(S.polling[ns]);S.polling[ns]=setInterval(async()=>{try{const d=await(await authFetch('/api/task/'+taskId)).json();updProg(ns,d,taskId);if(d.status==='done'||d.status==='error'){clearInterval(S.polling[ns]);S.polling[ns]=null;const btn=document.getElementById('btn-'+ns);if(btn)btn.disabled=false;addHistory(d,taskId);}}catch{}},800);}
-function updProg(ns,task,taskId){const pct=task.progress||0;document.getElementById('pb-'+ns).style.width=pct+'%';document.getElementById('pp-'+ns).textContent=pct+'%';const sp=document.getElementById('sp-'+ns),pl=document.getElementById('pl-'+ns);if(task.status==='done'){if(sp)sp.style.display='none';pl.textContent='完成 🎉';document.getElementById('pb-'+ns).classList.add('done');document.getElementById('rr-'+ns).classList.add('show');document.getElementById('rn-'+ns).textContent=task.original_name||'输出文件';const dl=document.getElementById('dl-'+ns);dl.href='/api/download/'+taskId+(S.accessKey?"?access_key="+S.accessKey:"");dl.setAttribute('download',task.original_name||'output');showToast('处理完成！','success');}else if(task.status==='error'){if(sp)sp.style.display='none';pl.textContent='处理失败';document.getElementById('pb-'+ns).classList.add('error');const el=document.getElementById('el-'+ns);el.textContent=Array.isArray(task.log)?task.log.join('\n'):(task.log||'未知错误');el.classList.add('show');showToast('处理失败，查看错误日志','error');}else{pl.textContent='处理中...';}}
+function pollTask(taskId,ns){if(S.polling[ns])clearInterval(S.polling[ns]);S.polling[ns]=setInterval(async()=>{try{const d=await(await authFetch('/api/task/'+taskId)).json();updProg(ns,d,taskId);if(d.status==='done'||d.status==='error'){clearInterval(S.polling[ns]);S.polling[ns]=null;S.runningTasks.delete(taskId);const btn=document.getElementById('btn-'+ns);if(btn)btn.disabled=false;addHistory(d,taskId);}}catch{}},800);}
+function updProg(ns,task,taskId){const pct=task.progress||0;document.getElementById('pb-'+ns).style.width=pct+'%';document.getElementById('pp-'+ns).textContent=pct+'%';const sp=document.getElementById('sp-'+ns),pl=document.getElementById('pl-'+ns);if(task.status==='done'){if(sp)sp.style.display='none';pl.textContent='完成 🎉';document.getElementById('pb-'+ns).classList.add('done');document.getElementById('rr-'+ns).classList.add('show');document.getElementById('rn-'+ns).textContent=task.custom_name||task.original_name||'输出文件';const dl=document.getElementById('dl-'+ns);dl.href='/api/download/'+taskId+(S.accessKey?"?access_key="+S.accessKey:"");dl.setAttribute('download',task.custom_name||task.original_name||'output');showToast('处理完成！','success');}else if(task.status==='error'){if(sp)sp.style.display='none';pl.textContent='处理失败';document.getElementById('pb-'+ns).classList.add('error');const el=document.getElementById('el-'+ns);el.textContent=Array.isArray(task.log)?task.log.join('\n'):(task.log||'未知错误');el.classList.add('show');showToast('处理失败，查看错误日志','error');}else{pl.textContent='处理中...';}}
 function showProg(ns,show){document.getElementById('ps-'+ns)?.classList.toggle('show',show);}
 function resetProg(ns){const pb=document.getElementById('pb-'+ns);if(pb){pb.style.width='0%';pb.className='progress-bar-fill';}const pp=document.getElementById('pp-'+ns);if(pp)pp.textContent='0%';const pl=document.getElementById('pl-'+ns);if(pl)pl.textContent='处理中...';const sp=document.getElementById('sp-'+ns);if(sp)sp.style.display='';document.getElementById('rr-'+ns)?.classList.remove('show');const el=document.getElementById('el-'+ns);if(el){el.classList.remove('show');el.textContent='';}showProg(ns,false);}
 
-// ── 历史 ──
-function addHistory(task,taskId){S.history.unshift({taskId,name:task.original_name||'输出文件',status:task.status,time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});renderHistory();}
-function renderHistory(){const list=document.getElementById('historyList');if(!S.history.length){list.innerHTML='<div class="empty-state"><span class="empty-icon">📋</span>暂无任务记录</div>';return;}list.innerHTML=S.history.map(h=>{const icon=h.status==='done'?'✅':'❌',sc=h.status==='done'?'done':'error',st=h.status==='done'?'完成':'失败';const dl=h.status==='done'?`<a class="btn btn-ghost" href="/api/download/${h.taskId+(S.accessKey?"?access_key="+S.accessKey:"")}" download style="font-size:12px;padding:5px 12px">⬇ 下载</a>`:'';return `<div class="history-item"><div class="history-icon">${icon}</div><div class="history-meta"><div class="history-name">${escH(h.name)}</div><div class="history-sub">${h.time}</div></div><span class="history-status ${sc}">${st}</span>${dl}</div>`;}).join('');}
-function clearHistory(){S.history=[];renderHistory();}
+// ── 历史记录管理 ──
+
+// 加载历史记录
+async function loadHistory(){
+  try{
+    const r=await authFetch('/api/tasks?limit=100');
+    if(!r.ok){showToast('加载历史记录失败','error');return;}
+    const data=await r.json();
+    S.history=data.tasks||[];
+    renderHistory();
+  }catch(e){console.error('加载历史记录失败:',e);}
+}
+
+// 刷新历史记录
+async function refreshHistory(){
+  await loadHistory();
+  showToast('历史记录已刷新','success');
+}
+
+function addHistory(task,taskId){
+  // 检查是否已存在
+  const existingIdx=S.history.findIndex(h=>h.task_id===taskId);
+  const historyItem={
+    task_id:taskId,
+    name:task.custom_name||task.original_name||'输出文件',
+    status:task.status,
+    time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),
+    created_at:task.created_at||Date.now()/1000,
+    updated_at:Date.now()/1000,
+    progress:task.progress,
+    output_file:task.output_file,
+    custom_name:task.custom_name,
+    original_name:task.original_name,
+    mode:task.mode||'convert',
+    file_size:task.file_size||0
+  };
+  if(existingIdx>=0){S.history[existingIdx]=historyItem;}
+  else{S.history.unshift(historyItem);}
+  renderHistory();
+}
+
+function renderHistory(){
+  const list=document.getElementById('historyList');
+  if(!S.history.length){list.innerHTML='<div class="empty-state"><span class="empty-icon">📋</span>暂无任务记录</div>';updateDeleteButton();return;}
+  list.innerHTML=S.history.map(h=>{
+    const isSelected=S.selectedHistory.has(h.task_id);
+    const isDone=h.status==='done';
+    const isError=h.status==='error';
+    const isRunning=h.status==='running'||h.status==='pending';
+    const icon=isDone?'✅':isError?'❌':'⏳';
+    const sc=isDone?'done':isError?'error':isRunning?'running':'pending';
+    const st=isDone?'完成':isError?'失败':isRunning?'处理中':'等待中';
+    const timeStr=h.time||new Date(h.created_at*1000).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+    const sizeStr=h.file_size?` · ${fmtSize(h.file_size)}`:'';
+    // 构建操作按钮
+    let actions='';
+    if(isDone){
+      actions+=`<a class="history-btn history-btn-download" href="/api/download/${h.task_id}${S.accessKey?'?access_key='+S.accessKey:''}" download="${h.custom_name||h.original_name||'output'}">⬇ 下载</a>`;
+    }
+    actions+=`<button class="history-btn history-btn-delete" onclick="deleteHistoryItem('${h.task_id}')">🗑️ 删除</button>`;
+    return `<div class="history-item" data-task-id="${h.task_id}"><input type="checkbox" class="history-checkbox" ${isSelected?'checked':''} ${!isDone&&!isError?'disabled':''} onchange="toggleHistorySelect('${h.task_id}')"><div class="history-icon">${icon}</div><div class="history-meta"><div class="history-name">${escH(h.name)}</div><div class="history-sub">${timeStr}${sizeStr} · ${h.mode||'convert'}</div></div><span class="history-status ${sc}">${st}</span><div class="history-actions-group">${actions}</div></div>`;
+  }).join('');
+  updateDeleteButton();
+}
+
+function toggleHistorySelect(taskId){
+  if(S.selectedHistory.has(taskId)){S.selectedHistory.delete(taskId);}
+  else{S.selectedHistory.add(taskId);}
+  updateDeleteButton();
+  updateSelectAllCheckbox();
+}
+
+function updateDeleteButton(){
+  const btn=document.getElementById('btn-delete-selected');
+  btn.disabled=S.selectedHistory.size===0;
+  btn.textContent=`🗑️ 清理所选 (${S.selectedHistory.size})`;
+}
+
+function updateSelectAllCheckbox(){
+  const checkbox=document.getElementById('select-all-history');
+  const doneTasks=S.history.filter(h=>h.status==='done'||h.status==='error');
+  if(doneTasks.length===0){checkbox.checked=false;checkbox.indeterminate=false;return;}
+  const selectedDone=doneTasks.filter(h=>S.selectedHistory.has(h.task_id)).length;
+  if(selectedDone===0){checkbox.checked=false;checkbox.indeterminate=false;}
+  else if(selectedDone===doneTasks.length){checkbox.checked=true;checkbox.indeterminate=false;}
+  else{checkbox.checked=false;checkbox.indeterminate=true;}
+}
+
+function toggleSelectAllHistory(){
+  const checkbox=document.getElementById('select-all-history');
+  const doneTasks=S.history.filter(h=>h.status==='done'||h.status==='error');
+  if(checkbox.checked){
+    doneTasks.forEach(h=>S.selectedHistory.add(h.task_id));
+  }else{
+    doneTasks.forEach(h=>S.selectedHistory.delete(h.task_id));
+  }
+  renderHistory();
+}
+
+async function deleteSelectedHistory(){
+  if(S.selectedHistory.size===0)return;
+  showConfirmDialog('确认清理',`确定要删除选中的 ${S.selectedHistory.size} 个任务及其文件吗？此操作不可恢复。`,'🗑️',async()=>{
+    const taskIds=Array.from(S.selectedHistory);
+    try{
+      const r=await authFetch('/api/tasks',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_ids:taskIds})});
+      if(!r.ok){showToast('删除失败','error');return;}
+      const data=await r.json();
+      S.selectedHistory.clear();
+      await loadHistory();
+      showToast(`已删除 ${data.deleted_count} 个任务`,'success');
+    }catch(e){showToast('删除失败：'+e.message,'error');}
+  });
+}
+
+async function deleteHistoryItem(taskId){
+  showConfirmDialog('确认删除','确定要删除此任务及其文件吗？此操作不可恢复。','🗑️',async()=>{
+    try{
+      const r=await authFetch('/api/task/'+taskId,{method:'DELETE'});
+      if(!r.ok){showToast('删除失败','error');return;}
+      S.selectedHistory.delete(taskId);
+      await loadHistory();
+      showToast('任务已删除','success');
+    }catch(e){showToast('删除失败：'+e.message,'error');}
+  });
+}
+
+async function clearAllHistory(){
+  const doneTasks=S.history.filter(h=>h.status==='done'||h.status==='error');
+  if(doneTasks.length===0){showToast('没有可清理的任务','info');return;}
+  showConfirmDialog('确认清空',`确定要清空所有 ${doneTasks.length} 个已完成/失败的任务及其文件吗？此操作不可恢复。`,'⚠️',async()=>{
+    const taskIds=doneTasks.map(h=>h.task_id);
+    try{
+      const r=await authFetch('/api/tasks',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({task_ids:taskIds})});
+      if(!r.ok){showToast('清空失败','error');return;}
+      const data=await r.json();
+      S.selectedHistory.clear();
+      await loadHistory();
+      showToast(`已清空 ${data.deleted_count} 个任务`,'success');
+    }catch(e){showToast('清空失败：'+e.message,'error');}
+  });
+}
 
 // ── Toast ──
 let _tt;
