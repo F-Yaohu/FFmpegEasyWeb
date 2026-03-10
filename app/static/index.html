@@ -376,7 +376,7 @@
       <div class="cmd-preview-wrap" id="cpw-cut" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-cut"></span></div>
         <div class="cmd-box"><textarea id="cmd-cut" rows="2" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('cut')">⎘</button></div>
-        <p class="cmd-note" id="cn-cut"></p>
+        <p class="cmd-note" id="cmd-note-cut"></p>
       </div>
       <button class="btn btn-primary" id="btn-cut" onclick="startCut()" disabled>✂️ 开始剪切</button>
       <div id="ps-cut" class="progress-section" style="margin-top:18px">
@@ -419,7 +419,7 @@
       <div class="cmd-preview-wrap" id="cpw-merge" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-merge"></span></div>
         <div class="cmd-box"><textarea id="cmd-merge" rows="3" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('merge')">⎘</button></div>
-        <p class="cmd-note" id="cn-merge"></p>
+        <p class="cmd-note" id="cmd-note-merge"></p>
       </div>
       <button class="btn btn-primary" id="btn-merge" onclick="startMerge()" disabled>🔗 开始合并</button>
       <div id="ps-merge" class="progress-section" style="margin-top:18px">
@@ -489,7 +489,7 @@
       <div class="cmd-preview-wrap" id="cpw-mux" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-mux"></span></div>
         <div class="cmd-box"><textarea id="cmd-mux" rows="2" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('mux')">⎘</button></div>
-        <p class="cmd-note" id="cn-mux"></p>
+        <p class="cmd-note" id="cmd-note-mux"></p>
       </div>
       <button class="btn btn-primary" id="btn-mux" onclick="startMux()" disabled>🎚️ 开始混流</button>
       <div id="ps-mux" class="progress-section" style="margin-top:18px">
@@ -577,7 +577,7 @@
       <div class="cmd-preview-wrap" id="cpw-cover" style="display:none">
         <div class="cmd-preview-header"><span class="cmd-preview-label">📟 FFmpeg 命令</span><span class="cmd-loading" id="cl-cover"></span></div>
         <div class="cmd-box"><textarea id="cmd-cover" rows="2" spellcheck="false"></textarea><button class="cmd-copy-btn" onclick="copyCmd('cover')">⎘</button></div>
-        <p class="cmd-note warn" id="cn-cover"></p>
+        <p class="cmd-note warn" id="cmd-note-cover"></p>
       </div>
       <button class="btn btn-primary" id="btn-cover" onclick="startCover()" disabled>🖼️ 开始处理</button>
       <div id="ps-cover" class="progress-section" style="margin-top:18px">
@@ -718,8 +718,8 @@ async function fetchPreview(ns){
     if(r.ok){
       const ta=document.getElementById('cmd-'+ns);
       if(ta){let display=d.command||'';if(d.concat_list)display+='\n\n# concat 列表:\n'+d.concat_list;ta.value=display;ta.style.height='auto';ta.style.height=Math.min(ta.scrollHeight,160)+'px';}
-      const cn=document.getElementById('cn-'+ns);
-      if(cn){if(ns==='cover'&&S.coverAction==='extract_audio'&&S.keepCover){cn.textContent='⚠ 保留封面时输出已自动改为 M4A';cn.className='cmd-note warn';}else{cn.textContent='以上为实际将执行的 FFmpeg 命令（路径已脱敏），可复制到本地运行学习。';cn.className='cmd-note';}}
+      const cmdNote=document.getElementById('cmd-note-'+ns);
+      if(cmdNote){if(ns==='cover'&&S.coverAction==='extract_audio'&&S.keepCover){cmdNote.textContent='⚠ 保留封面时输出已自动改为 M4A';cmdNote.className='cmd-note warn';}else{cmdNote.textContent='以上为实际将执行的 FFmpeg 命令（路径已脱敏），可复制到本地运行学习。';cmdNote.className='cmd-note';}}
       if(cl)cl.textContent='';
     }else{if(cl)cl.textContent='';}
   }catch{if(cl)cl.textContent='';}
@@ -825,7 +825,8 @@ function renderHistory(){
       actions+=`<a class="history-btn history-btn-download" href="/api/download/${h.task_id}${S.accessKey?'?access_key='+S.accessKey:''}" download="${h.custom_name||h.original_name||'output'}">⬇ 下载</a>`;
     }
     actions+=`<button class="history-btn history-btn-delete" onclick="deleteHistoryItem('${h.task_id}')">🗑️ 删除</button>`;
-    return `<div class="history-item" data-task-id="${h.task_id}"><input type="checkbox" class="history-checkbox" ${isSelected?'checked':''} ${!isDone&&!isError?'disabled':''} onchange="toggleHistorySelect('${h.task_id}')"><div class="history-icon">${icon}</div><div class="history-meta"><div class="history-name">${escH(h.name)}</div><div class="history-sub">${timeStr}${sizeStr} · ${h.mode||'convert'}</div></div><span class="history-status ${sc}">${st}</span><div class="history-actions-group">${actions}</div></div>`;
+    const displayName=h.custom_name||h.original_name||'输出文件';
+    return `<div class="history-item" data-task-id="${h.task_id}"><input type="checkbox" class="history-checkbox" ${isSelected?'checked':''} ${!isDone&&!isError?'disabled':''} onchange="toggleHistorySelect('${h.task_id}')"><div class="history-icon">${icon}</div><div class="history-meta"><div class="history-name">${escH(displayName)}</div><div class="history-sub">${timeStr}${sizeStr} · ${h.mode||'convert'}</div></div><span class="history-status ${sc}">${st}</span><div class="history-actions-group">${actions}</div></div>`;
   }).join('');
   updateDeleteButton();
 }

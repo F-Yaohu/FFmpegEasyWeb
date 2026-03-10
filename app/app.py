@@ -47,6 +47,7 @@ tasks_lock = threading.Lock()
 def init_db():
     """初始化SQLite数据库"""
     with sqlite3.connect(DB_PATH) as conn:
+        # 任务表
         conn.execute('''
             CREATE TABLE IF NOT EXISTS tasks (
                 task_id TEXT PRIMARY KEY,
@@ -60,10 +61,159 @@ def init_db():
                 created_at REAL NOT NULL,
                 updated_at REAL NOT NULL,
                 mode TEXT,
-                input_filename TEXT
+                input_filename TEXT,
+                input_file_id TEXT,
+                input_file_ids TEXT
+            )
+        ''')
+        # 上传文件表 - 记录上传文件的使用状态
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS upload_files (
+                file_id TEXT PRIMARY KEY,
+                filename TEXT NOT NULL,
+                size INTEGER DEFAULT 0,
+                upload_time REAL NOT NULL,
+                used_in_tasks INTEGER DEFAULT 0,
+                last_used_time REAL
             )
         ''')
         conn.commit()
+
+
+def is_upload_file_in_use(file_id: str, exclude_task_id: str = None) -> bool:
+    """检查上传文件是否还被其他任务使用"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            # 检查单文件引用
+            query1 = 'SELECT 1 FROM tasks WHERE input_file_id = ?'
+            params1 = [file_id]
+            if exclude_task_id:
+                query1 += ' AND task_id != ?'
+                params1.append(exclude_task_id)
+            if conn.execute(query1, params1).fetchone():
+                return True
+            
+            # 检查多文件引用（合并任务）
+            query2 = 'SELECT input_file_ids FROM tasks WHERE input_file_ids IS NOT NULL'
+            rows = conn.execute(query2).fetchall()
+            for row in rows:
+                file_ids = json.loads(row[0]) if row[0] else []
+                if file_id in file_ids:
+                    # 检查是否是当前要排除的任务
+                    if exclude_task_id:
+                        task_id_row = conn.execute(
+                            'SELECT task_id FROM tasks WHERE input_file_ids = ?',
+                            (row[0],)
+                        ).fetchone()
+                        if task_id_row and task_id_row[0] == exclude_task_id:
+                            continue
+                    return True
+        return False
+    except Exception as e:
+        app.logger.error(f"检查文件使用状态失败: {e}")
+        return True  # 出错时保守处理，认为文件还在使用
+
+
+def delete_upload_file(file_id: str):
+    """删除上传的文件"""
+    if not file_id:
+        return
+    try:
+        matches = list(UPLOAD_DIR.glob(f"{file_id}_*"))
+        for f in matches:
+            f.unlink(missing_ok=True)
+        # 从数据库删除记录
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('DELETE FROM upload_files WHERE file_id = ?', (file_id,))
+            conn.commit()
+    except Exception as e:
+        app.logger.error(f"删除上传文件失败 {file_id}: {e}")
+
+
+def record_upload_file(file_id: str, filename: str, size: int):
+    """记录上传文件信息"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('''
+                INSERT OR REPLACE INTO upload_files (file_id, filename, size, upload_time, used_in_tasks)
+                VALUES (?, ?, ?, ?, 0)
+            ''', (file_id, filename, size, time.time()))
+            conn.commit()
+    except Exception as e:
+        app.logger.error(f"记录上传文件失败: {e}")
+
+
+def mark_upload_file_used(file_id: str):
+    """标记上传文件已被使用"""
+    if not file_id:
+        return
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.execute('''
+                UPDATE upload_files 
+                SET used_in_tasks = used_in_tasks + 1, last_used_time = ?
+                WHERE file_id = ?
+            ''', (time.time(), file_id))
+            conn.commit()
+    except Exception as e:
+        app.logger.error(f"标记上传文件使用状态失败: {e}")
+
+
+def cleanup_orphan_uploads(max_age_hours: int = 24) -> int:
+    """清理未被使用的上传文件
+    
+    清理规则：
+    1. 超过 max_age_hours 小时未使用
+    2. 且未被任何任务引用（used_in_tasks = 0）
+    
+    返回删除的文件数量
+    """
+    deleted_count = 0
+    try:
+        now = time.time()
+        with sqlite3.connect(DB_PATH) as conn:
+            # 获取过期且未使用的文件
+            rows = conn.execute('''
+                SELECT file_id FROM upload_files 
+                WHERE used_in_tasks = 0 
+                AND upload_time < ?
+            ''', (now - max_age_hours * 3600,)).fetchall()
+            
+            for row in rows:
+                file_id = row[0]
+                # 再次确认文件确实没有被任务使用（防止数据不一致）
+                if not is_upload_file_in_use(file_id):
+                    delete_upload_file(file_id)
+                    deleted_count += 1
+        
+        return deleted_count
+    except Exception as e:
+        app.logger.error(f"清理未使用上传文件失败: {e}")
+        return 0
+
+
+def get_upload_stats() -> dict:
+    """获取上传文件统计信息"""
+    try:
+        with sqlite3.connect(DB_PATH) as conn:
+            conn.row_factory = sqlite3.Row
+            # 总文件数
+            total = conn.execute('SELECT COUNT(*) FROM upload_files').fetchone()[0]
+            # 已使用文件数
+            used = conn.execute('SELECT COUNT(*) FROM upload_files WHERE used_in_tasks > 0').fetchone()[0]
+            # 未使用文件数
+            unused = total - used
+            # 未使用文件总大小
+            size_result = conn.execute('SELECT SUM(size) FROM upload_files WHERE used_in_tasks = 0').fetchone()[0]
+            return {
+                'total': total,
+                'used': used,
+                'unused': unused,
+                'unused_size': size_result or 0
+            }
+    except Exception as e:
+        app.logger.error(f"获取上传文件统计失败: {e}")
+        return {'total': 0, 'used': 0, 'unused': 0, 'unused_size': 0}
 
 def get_db():
     """获取数据库连接"""
@@ -86,8 +236,9 @@ def save_task_to_db(task_id: str, task_data: dict):
             conn.execute('''
                 INSERT OR REPLACE INTO tasks 
                 (task_id, status, progress, output_file, original_name, custom_name, 
-                 file_size, log, created_at, updated_at, mode, input_filename)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 file_size, log, created_at, updated_at, mode, input_filename,
+                 input_file_id, input_file_ids)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''', (
                 task_id,
                 task_data.get('status', 'pending'),
@@ -100,7 +251,9 @@ def save_task_to_db(task_id: str, task_data: dict):
                 task_data.get('created_at', time.time()),
                 time.time(),
                 task_data.get('mode', ''),
-                task_data.get('input_filename', '')
+                task_data.get('input_filename', ''),
+                task_data.get('input_file_id', ''),
+                json.dumps(task_data.get('input_file_ids', [])) if task_data.get('input_file_ids') else ''
             ))
             conn.commit()
     except Exception as e:
@@ -121,6 +274,11 @@ def load_task_from_db(task_id: str) -> dict | None:
                     task['log'] = json.loads(task['log']) if task['log'] else []
                 except:
                     task['log'] = [task['log']] if task['log'] else []
+                # 解析input_file_ids字段
+                try:
+                    task['input_file_ids'] = json.loads(task['input_file_ids']) if task['input_file_ids'] else []
+                except:
+                    task['input_file_ids'] = []
                 return task
     except Exception as e:
         app.logger.error(f"从数据库加载任务失败: {e}")
@@ -153,6 +311,11 @@ def load_all_tasks_from_db(limit: int = 100) -> list:
                     task['log'] = json.loads(task['log']) if task['log'] else []
                 except:
                     task['log'] = [task['log']] if task['log'] else []
+                # 解析input_file_ids字段
+                try:
+                    task['input_file_ids'] = json.loads(task['input_file_ids']) if task['input_file_ids'] else []
+                except:
+                    task['input_file_ids'] = []
                 tasks_list.append(task)
             return tasks_list
     except Exception as e:
@@ -333,11 +496,15 @@ def upload_file():
     save_path = UPLOAD_DIR / f"{file_id}_{filename}"
     f.save(str(save_path))
 
+    # 记录上传文件到数据库
+    file_size = save_path.stat().st_size
+    record_upload_file(file_id, filename, file_size)
+
     info = get_file_info(str(save_path))
     return jsonify({
         'file_id': file_id,
         'filename': filename,
-        'size': save_path.stat().st_size,
+        'size': file_size,
         'info': info
     })
 
@@ -612,6 +779,7 @@ def convert():
         'duration': data.get('duration', 0),
         'mode': mode,
         'input_filename': filename,
+        'input_file_id': file_id,
     }
 
     with tasks_lock:
@@ -619,6 +787,9 @@ def convert():
     
     # 持久化到数据库
     save_task_to_db(task_id, task_data)
+    
+    # 标记上传文件为已使用
+    mark_upload_file_used(file_id)
 
     if mode == 'cut':
         cmd_builder = _build_cut_cmd
@@ -638,10 +809,16 @@ def convert():
             'video_vol': float(data.get('video_vol', 1.0)),
             'audio_vol': float(data.get('audio_vol', 1.0)),
         }
+        # 标记音频文件为已使用
+        if audio_id:
+            mark_upload_file_used(audio_id)
     elif mode == 'cover':
         cover_action = data.get('cover_action', 'set')
         cover_id = data.get('cover_file_id', '')
         cover_path = _find_upload(cover_id) if cover_id else None
+        # 标记封面文件为已使用
+        if cover_id:
+            mark_upload_file_used(cover_id)
         # fix: extract_audio + keep_cover 必须输出 m4a
         if cover_action == 'extract_audio' and data.get('keep_cover', False):
             if output_format == 'mp3':
@@ -737,12 +914,17 @@ def merge():
         'duration': 0,
         'mode': 'merge',
         'input_filename': f"{len(file_ids)} files",
+        'input_file_ids': file_ids,
     }
 
     with tasks_lock:
         tasks[task_id] = task_data.copy()
     
     save_task_to_db(task_id, task_data)
+    
+    # 标记所有合并文件为已使用
+    for fid in file_ids:
+        mark_upload_file_used(fid)
 
     t = threading.Thread(
         target=run_merge_task,
@@ -954,6 +1136,20 @@ def delete_task(task_id: str):
         except:
             pass
     
+    # 删除上传文件（如果没有被其他任务使用）
+    # 单文件任务
+    input_file_id = task.get('input_file_id', '')
+    if input_file_id:
+        if not is_upload_file_in_use(input_file_id, exclude_task_id=task_id):
+            delete_upload_file(input_file_id)
+    
+    # 多文件任务（合并）
+    input_file_ids = task.get('input_file_ids', [])
+    if input_file_ids:
+        for fid in input_file_ids:
+            if not is_upload_file_in_use(fid, exclude_task_id=task_id):
+                delete_upload_file(fid)
+    
     # 从数据库删除
     delete_task_from_db(task_id)
     
@@ -976,13 +1172,15 @@ def delete_tasks_batch():
     
     deleted_count = 0
     failed_ids = []
+    all_input_file_ids = set()  # 收集所有被删除任务的输入文件
     
+    # 第一阶段：收集所有任务信息
+    tasks_to_delete = []
     for task_id in task_ids:
         if not re.match(r'^[a-zA-Z0-9_-]{1,36}$', task_id):
             failed_ids.append(task_id)
             continue
         
-        # 获取任务信息
         task = load_task_from_db(task_id)
         if not task:
             with tasks_lock:
@@ -993,6 +1191,16 @@ def delete_tasks_batch():
             failed_ids.append(task_id)
             continue
         
+        tasks_to_delete.append((task_id, task))
+        
+        # 收集输入文件ID
+        if task.get('input_file_id'):
+            all_input_file_ids.add(task['input_file_id'])
+        if task.get('input_file_ids'):
+            all_input_file_ids.update(task['input_file_ids'])
+    
+    # 第二阶段：删除输出文件和数据库记录
+    for task_id, task in tasks_to_delete:
         # 删除输出文件
         output_file = task.get('output_file', '')
         if output_file:
@@ -1011,6 +1219,21 @@ def delete_tasks_batch():
         # 从内存删除
         with tasks_lock:
             tasks.pop(task_id, None)
+    
+    # 第三阶段：检查并删除上传文件（排除仍在其他任务中使用的文件）
+    # 首先，收集所有未被删除任务的输入文件ID
+    remaining_tasks = load_all_tasks_from_db(limit=10000)
+    remaining_input_files = set()
+    for task in remaining_tasks:
+        if task.get('input_file_id'):
+            remaining_input_files.add(task['input_file_id'])
+        if task.get('input_file_ids'):
+            remaining_input_files.update(task['input_file_ids'])
+    
+    # 删除不再被使用的上传文件
+    for file_id in all_input_file_ids:
+        if file_id not in remaining_input_files:
+            delete_upload_file(file_id)
     
     return jsonify({
         'success': True,
@@ -1164,11 +1387,33 @@ def probe():
     return jsonify(info)
 
 
+@app.route('/api/upload/stats', methods=['GET'])
+@require_auth
+def upload_stats():
+    """获取上传文件统计信息"""
+    return jsonify(get_upload_stats())
+
+
 @app.route('/api/cleanup', methods=['POST'])
 @require_auth
 def cleanup():
-    cleanup_old_files(UPLOAD_DIR)
-    cleanup_old_files(OUTPUT_DIR)
+    """清理过期文件和任务
+    
+    清理规则：
+    1. 上传文件：超过24小时且未被任何任务使用的文件
+    2. 输出文件：超过24小时的文件
+    3. 内存任务：已完成/失败超过1小时的任务记录
+    """
+    data = request.get_json(silent=True) or {}
+    max_age_hours = data.get('max_age_hours', 24)
+    
+    # 清理未使用的上传文件（新的智能清理）
+    orphan_deleted = cleanup_orphan_uploads(max_age_hours)
+    
+    # 清理旧的输出文件
+    cleanup_old_files(OUTPUT_DIR, max_age_hours)
+    
+    # 清理内存中已完成的任务记录
     now = time.time()
     with tasks_lock:
         to_remove = [
@@ -1177,7 +1422,15 @@ def cleanup():
         ]
         for tid in to_remove:
             tasks.pop(tid, None)
-    return jsonify({'removed_tasks': len(to_remove)})
+    
+    # 获取上传文件统计
+    stats = get_upload_stats()
+    
+    return jsonify({
+        'removed_tasks': len(to_remove),
+        'removed_orphan_uploads': orphan_deleted,
+        'upload_stats': stats
+    })
 
 
 @app.route('/img/<path:filename>')
