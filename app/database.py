@@ -23,6 +23,17 @@ def _json_loads(value, fallback):
 		return fallback
 
 
+def _table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
+	rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
+	return {str(r[1]) for r in rows}
+
+
+def _ensure_column(conn: sqlite3.Connection, table_name: str, column_name: str, ddl: str):
+	cols = _table_columns(conn, table_name)
+	if column_name not in cols:
+		conn.execute(f"ALTER TABLE {table_name} ADD COLUMN {ddl}")
+
+
 def init_db():
 	with _conn() as conn:
 		conn.execute(
@@ -81,6 +92,37 @@ def init_db():
 		conn.execute("CREATE INDEX IF NOT EXISTS idx_assets_created ON assets(created_at DESC)")
 		conn.execute("CREATE INDEX IF NOT EXISTS idx_assets_kind ON assets(kind)")
 		conn.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
+
+		# 向后兼容旧版本数据库结构（避免列缺失导致运行时异常）
+		_ensure_column(conn, "upload_files", "file_size", "file_size INTEGER DEFAULT 0")
+		_ensure_column(conn, "upload_files", "used_count", "used_count INTEGER DEFAULT 0")
+		_ensure_column(conn, "upload_files", "created_at", "created_at REAL")
+		_ensure_column(conn, "upload_files", "updated_at", "updated_at REAL")
+
+		_ensure_column(conn, "tasks", "input_file_ids_json", "input_file_ids_json TEXT")
+		_ensure_column(conn, "tasks", "input_asset_ids_json", "input_asset_ids_json TEXT")
+		_ensure_column(conn, "tasks", "file_size", "file_size INTEGER DEFAULT 0")
+		_ensure_column(conn, "tasks", "log_json", "log_json TEXT")
+
+		# 旧字段数据迁移到新字段（幂等）
+		upload_cols = _table_columns(conn, "upload_files")
+		if "size" in upload_cols and "file_size" in upload_cols:
+			conn.execute("UPDATE upload_files SET file_size = COALESCE(file_size, size, 0)")
+		if "used_in_tasks" in upload_cols and "used_count" in upload_cols:
+			conn.execute("UPDATE upload_files SET used_count = COALESCE(used_count, used_in_tasks, 0)")
+		if "upload_time" in upload_cols and "created_at" in upload_cols:
+			conn.execute("UPDATE upload_files SET created_at = COALESCE(created_at, upload_time)")
+		if "last_used_time" in upload_cols and "updated_at" in upload_cols:
+			conn.execute("UPDATE upload_files SET updated_at = COALESCE(updated_at, last_used_time, created_at)")
+
+		task_cols = _table_columns(conn, "tasks")
+		if "log" in task_cols and "log_json" in task_cols:
+			conn.execute("UPDATE tasks SET log_json = COALESCE(log_json, log)")
+		if "input_file_ids" in task_cols and "input_file_ids_json" in task_cols:
+			conn.execute("UPDATE tasks SET input_file_ids_json = COALESCE(input_file_ids_json, input_file_ids)")
+		if "updated_at" in task_cols:
+			conn.execute("UPDATE tasks SET updated_at = COALESCE(updated_at, created_at, ?)", (time.time(),))
+
 		conn.commit()
 
 
